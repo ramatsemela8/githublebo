@@ -1,0 +1,91 @@
+pip install plotly
+
+import pandas as pd
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+
+# Load data
+
+train_df = pd.read_csv('/content/train(5).csv')
+test_df = pd.read_csv('/content/test(4).csv')
+# Preprocess data
+def preprocess(df):
+    df = df.copy()
+    df['Sex'] = LabelEncoder().fit_transform(df['Sex'])
+    df['Embarked'] = LabelEncoder().fit_transform(df['Embarked'].fillna('S'))
+    df['Age'].fillna(df['Age'].median(), inplace=True)
+    df['Fare'].fillna(df['Fare'].median(), inplace=True)
+    df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+    return df
+
+train_df = preprocess(train_df)
+test_df = preprocess(test_df)
+
+# Features and target
+X_train = train_df.drop('Survived', axis=1)
+y_train = train_df['Survived']
+X_test = test_df.copy()
+
+# Split training data for validation
+X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# Train model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_split, y_train_split)
+
+# Predict on validation set to calculate accuracy
+val_predictions = model.predict(X_val_split)
+accuracy = accuracy_score(y_val_split, val_predictions)
+
+# Predict on test set
+test_predictions = model.predict(X_test)
+
+# Prepare submission DataFrame
+submission_df = pd.DataFrame({
+    'PassengerId': test_df['PassengerId'],
+    'Survived': test_predictions
+})
+
+# Create interactive plot
+fig = px.scatter(submission_df, x='PassengerId', y='Survived',
+                 title='Survival Status of Titanic Passengers',
+                 labels={'PassengerId': 'Passenger ID', 'Survived': 'Survived'},
+                 color='Survived',
+                 color_continuous_scale=px.colors.diverging.RdYlBu,
+                 range_color=[0, 1])
+
+# Add custom legend labels
+fig.update_layout(
+    legend_title_text='Survival Status',
+    legend=dict(
+        itemsizing='constant',
+        traceorder='reversed',
+        x=0.8,
+        y=0.1,
+        xanchor='left',
+        yanchor='top',
+        title='Survival Status'
+    )
+)
+
+# Add annotations for legend
+fig.add_annotation(
+    xref='paper', yref='paper', x=0.9, y=0.2,
+    text='1: Survived<br>0: Deceased',
+    showarrow=False,
+    align='left',
+    font=dict(size=12, color='black'),
+    bordercolor='black',
+    borderwidth=2,
+    bgcolor='white'
+)
+
+# Show plot
+fig.show()
+
+# Print accuracy
+print(f"Accuracy on validation set: {accuracy:.4f}")
+print("Submission file created successfully.")

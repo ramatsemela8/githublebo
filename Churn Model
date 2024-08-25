@@ -1,0 +1,203 @@
+import pandas as pd
+import numpy as np
+
+# Load dataset
+df = pd.read_csv('/content/Churn_Modelling.csv')
+
+# Display the first few rows of the dataset
+print(df.head())
+
+# Get a summary of the dataset
+print(df.info())
+print(df.describe())
+
+# Check for missing values
+print(df.isnull().sum())
+
+# If there are missing values, decide how to handle them
+# For example, if there are missing values in 'Balance', we might fill them with the median
+df['Balance'].fillna(df['Balance'].median(), inplace=True)
+
+from sklearn.preprocessing import LabelEncoder
+
+# Initialize LabelEncoder
+le = LabelEncoder()
+
+# Encode categorical columns
+df['Geography'] = le.fit_transform(df['Geography'])
+df['Gender'] = le.fit_transform(df['Gender'])
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Plot distributions
+plt.figure(figsize=(10, 6))
+sns.histplot(df['Age'], kde=True)
+plt.title('Age Distribution')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.histplot(df['Balance'], kde=True)
+plt.title('Balance Distribution')
+plt.show()
+
+# Analyze churn by gender and geography
+plt.figure(figsize=(14, 6))
+sns.countplot(x='Geography', hue='Exited', data=df)
+plt.title('Churn by Geography')
+plt.show()
+
+plt.figure(figsize=(14, 6))
+sns.countplot(x='Gender', hue='Exited', data=df)
+plt.title('Churn by Gender')
+plt.show()
+
+# Calculate correlations
+correlation_matrix = df.corr()
+
+# Plot heatmap
+plt.figure(figsize=(12, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
+plt.title('Correlation Heatmap')
+plt.show()
+
+# Check the data type of the 'Age' column
+print(df['Age'].dtype)
+
+# If 'Age' is not numeric, convert it to numeric
+df['Age'] = pd.to_numeric(df['Age'], errors='coerce')
+
+# Check for non-numeric values or missing data
+print(df['Age'].isna().sum())  # Check for missing values after conversion
+# Handle missing values (e.g., fill with median, or drop rows)
+df['Age'].fillna(df['Age'].median(), inplace=True)  # Or use another method depending on context
+
+#  Check and convert 'Age' to numeric
+print(df['Age'].dtype)  # Check the data type of 'Age' column
+
+# Convert 'Age' to numeric, coercing errors to NaN
+df['Age'] = pd.to_numeric(df['Age'], errors='coerce')
+
+# Handle missing values, if any (e.g., fill with median)
+df['Age'].fillna(df['Age'].median(), inplace=True)
+
+# Display the DataFrame to verify the result
+print(df.head())
+
+from sklearn.preprocessing import StandardScaler
+
+# Initialize scaler
+scaler = StandardScaler()
+
+# Scale numerical features
+df[['CreditScore', 'Age', 'Tenure', 'Balance', 'EstimatedSalary']] = scaler.fit_transform(df[['CreditScore', 'Age', 'Tenure', 'Balance', 'EstimatedSalary']])
+
+from sklearn.model_selection import train_test_split
+
+# Define features and target variable
+X = df.drop(columns=['Exited'])
+y = df['Exited']
+
+# Split the dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+from sklearn.preprocessing import LabelEncoder
+
+# Initialize LabelEncoder
+le_gender = LabelEncoder()
+
+# Fit on training data
+le_gender.fit(X_train['Gender'])
+
+# Transform training data
+X_train['Gender'] = le_gender.transform(X_train['Gender'])
+
+# Transform test data
+X_test['Gender'] = le_gender.transform(X_test['Gender'])
+
+# Combine training and test data to ensure consistent categories
+combined_geography = pd.concat([X_train['Geography'], X_test['Geography']])
+
+# Initialize LabelEncoder
+le_geography = LabelEncoder()
+
+# Fit on combined data
+le_geography.fit(combined_geography)
+
+# Transform training data
+X_train['Geography'] = le_geography.transform(X_train['Geography'])
+
+# Transform test data
+X_test['Geography'] = le_geography.transform(X_test['Geography'])
+
+from sklearn.preprocessing import OneHotEncoder
+
+# Initialize OneHotEncoder with handle_unknown='ignore'
+ohe = OneHotEncoder(handle_unknown='ignore', sparse=False)
+
+# Fit on training data
+X_train_encoded = ohe.fit_transform(X_train[['Geography']])
+
+# Transform test data
+X_test_encoded = ohe.transform(X_test[['Geography']])
+# Check for non-numeric data in each column
+for col in df.columns:
+    if df[col].dtype == 'object':
+        print(f"Column '{col}' contains non-numeric data.")
+
+# Check for non-numeric values in the DataFrame
+print(X_train.dtypes)  # Check data types of each column
+
+# Display unique values to identify non-numeric entries
+for column in X_train.select_dtypes(include=['object']).columns:
+    print(f"Unique values in {column}: {X_train[column].unique()}")
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Load the dataset
+df = pd.read_csv('/content/Churn_Modelling.csv')
+# Convert 'AgeGroup' to numeric categories if you want to use it directly
+#df['AgeGroup'] = pd.Categorical(df['AgeGroup']).codes
+
+# Convert 'Geography' and 'Gender' to numeric using Label Encoding
+df['Geography'] = LabelEncoder().fit_transform(df['Geography'])
+df['Gender'] = LabelEncoder().fit_transform(df['Gender'])
+
+# Define features and target
+X = df.drop(columns=['Exited'])
+y = df['Exited']
+
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize RandomForestClassifier
+rf_model = RandomForestClassifier()
+
+# Train the model
+rf_model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = rf_model.predict(X_test)
+
+
+# Initialize model
+#model = LogisticRegression()
+
+# Train model
+#model.fit(X_train, y_train)
+
+# Make predictions
+#y_pred = model.predict(X_test)
+
+# Evaluate the model
+print(f'Accuracy: {accuracy_score(y_test, y_pred)}')
+print('Classification Report:')
+print(classification_report(y_test, y_pred))
+print('Confusion Matrix:')
+print(confusion_matrix(y_test, y_pred))
